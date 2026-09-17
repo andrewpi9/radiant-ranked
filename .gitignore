@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.DS_Store
+.pytest_cache/
+
+# Intermediates. The append log is rebuildable from professors_raw.json and the
+# checkpoint is machine-local state about a particular interrupted run.
+/data/professors_raw.jsonl
+/data/ingest_checkpoint.json
+/data/*.bak.*
+
+# data/professors_raw.json and data/rankings.json ARE committed on purpose:
+# they make `make rank` and `make site` work from a clean clone without
+# scraping RateMyProfessors, and they are what CI builds the site from.
