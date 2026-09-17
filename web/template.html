@@ -1,0 +1,730 @@
+<title>Radiant Ranked</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Oswald:wght@500;600;700&display=swap">
+
+<style>
+/* Committed single-theme design: VALORANT's world is dark, and a light variant
+   would misrepresent it. Every colour is therefore painted explicitly so the
+   page holds on whatever ground the host puts behind it. */
+:root {
+  color-scheme: dark;
+
+  --void:      #0f1923;  /* VALORANT's signature near-black */
+  --void-2:    #0b141c;
+  --panel:     #16212c;
+  --panel-2:   #1c2936;
+  --panel-3:   #243544;
+  --line:      #24333f;
+  --line-2:    #33485a;
+
+  --red:       #ff4655;  /* VALORANT red */
+  --red-deep:  #bd3944;
+  --bone:      #ece8e1;  /* VALORANT off-white */
+  --bone-2:    #a7b3bd;
+  --bone-3:    #6d7f8d;
+
+  --unc:       #4b9cd3;
+  --unc-wash:  #14293a;
+  --duke:      #4f7fd1;
+  --duke-wash: #161f38;
+
+  --up:        #6ae2af;
+  --down:      #ff4655;
+
+  --display: "Oswald", "Barlow Condensed", Impact, sans-serif;
+  --sans:    "Barlow", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --mono:    "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Riot's official competitive-tier colours. */
+  --t-radiant:   #ffffaa;
+  --t-immortal:  #bb3d65;
+  --t-ascendant: #6ae2af;
+  --t-diamond:   #b489c4;
+  --t-platinum:  #59a9b6;
+  --t-gold:      #eccf56;
+  --t-silver:    #bbc2c2;
+  --t-bronze:    #a5855d;
+  --t-iron:      #868986;
+
+  --cut: 13px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--void);
+  color: var(--bone);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  /* faint tactical grid, fixed so it reads as a backdrop not a texture */
+  background-image:
+    linear-gradient(rgba(255, 70, 85, .028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 70, 85, .028) 1px, transparent 1px);
+  background-size: 62px 62px;
+  background-attachment: fixed;
+}
+
+.shell { max-width: 1240px; margin: 0 auto; padding: 30px 20px 70px; }
+
+/* angular corner cut, used only on the panels that matter */
+.cut {
+  clip-path: polygon(
+    0 0, calc(100% - var(--cut)) 0, 100% var(--cut),
+    100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut)));
+}
+
+/* ---------- masthead ---------- */
+.masthead { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 30px; }
+.brand { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.eyebrow {
+  display: flex; align-items: center; gap: 9px;
+  font: 600 11px/1 var(--sans); letter-spacing: .22em; text-transform: uppercase;
+  color: var(--red);
+}
+.eyebrow::before { content: ""; width: 26px; height: 2px; background: var(--red); }
+h1 {
+  font-family: var(--display); font-weight: 700;
+  font-size: clamp(34px, 5.6vw, 58px); line-height: .94;
+  letter-spacing: .012em; text-transform: uppercase; margin: 0;
+  color: var(--bone); text-wrap: balance;
+}
+h1 em { font-style: normal; color: var(--red); }
+.tagline { margin: 2px 0 0; color: var(--bone-2); font-size: 14.5px; max-width: 58ch; }
+
+.stats { display: flex; gap: 0; margin-left: auto; flex-wrap: wrap; }
+.stats > div { padding: 0 20px; border-left: 2px solid var(--line); }
+.stats > div:first-child { border-left: 0; }
+.stats dt {
+  font: 600 10px/1 var(--sans); letter-spacing: .16em; text-transform: uppercase;
+  color: var(--bone-3); margin-bottom: 5px;
+}
+.stats dd {
+  margin: 0; font-family: var(--display); font-weight: 600; font-size: 25px;
+  line-height: 1; color: var(--bone); font-variant-numeric: tabular-nums;
+}
+
+/* ---------- section chrome ---------- */
+.sec-head {
+  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  margin: 38px 0 14px;
+}
+.sec-head h2 {
+  font-family: var(--display); font-weight: 600; font-size: 17px;
+  letter-spacing: .15em; text-transform: uppercase; margin: 0; color: var(--bone);
+}
+.sec-head h2::before {
+  content: ""; display: inline-block; width: 9px; height: 9px;
+  background: var(--red); margin-right: 10px;
+  transform: rotate(45deg) translateY(-1px);
+}
+.sec-head p { margin: 0; color: var(--bone-3); font-size: 12.5px; }
+
+/* ---------- rank distribution chart (25 divisions) ---------- */
+.dist {
+  background: var(--panel); border: 1px solid var(--line);
+  padding: 18px 16px 14px; overflow-x: auto;
+}
+.chart, .families {
+  display: grid; grid-template-columns: repeat(25, 1fr); gap: 2px;
+  min-width: 840px;   /* below this the chart scrolls rather than crushes */
+}
+.chart { align-items: end; }
+
+.tier {
+  appearance: none; border: 0; background: none; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 5px 1px 6px; font-family: inherit; color: inherit;
+}
+.tier:hover { background: var(--panel-2); }
+.tier[aria-pressed="true"] { background: var(--panel-3); }
+
+/* bars share one baseline; height is linear in share of the field */
+.plot { height: 118px; width: 100%; display: flex; align-items: flex-end; justify-content: center; }
+.bar {
+  width: 78%; min-height: 2px;   /* Radiant's 0.05% still has to register */
+  height: var(--h); background: var(--tc);
+  border-radius: 3px 3px 0 0;
+}
+.tier:hover .bar, .tier[aria-pressed="true"] .bar { filter: brightness(1.25); }
+.baseline { width: 100%; height: 1px; background: var(--line-2); margin-bottom: 7px; }
+
+.tier img { width: 30px; height: 30px; object-fit: contain; display: block; }
+.tier .tpct {
+  font-family: var(--mono); font-size: 9.5px; color: var(--bone-2);
+  margin-top: 3px; font-variant-numeric: tabular-nums;
+}
+.tier[aria-pressed="true"] .tpct { color: var(--bone); }
+
+/* family label spans its three divisions, so the grouping is structural */
+.families { margin-top: 7px; }
+.fam {
+  appearance: none; background: none; cursor: pointer;
+  border: 0; border-top: 2px solid var(--fc);
+  font: 600 9.5px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase;
+  color: var(--fc); text-align: center; padding: 7px 1px 0; white-space: nowrap;
+}
+.fam:hover, .fam[aria-pressed="true"] { background: var(--panel-2); }
+.fam small {
+  display: block; font-family: var(--mono); font-size: 9px; letter-spacing: 0;
+  color: var(--bone-3); margin-top: 3px; font-variant-numeric: tabular-nums;
+}
+
+/* ---------- controls ---------- */
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin: 26px 0 0; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > label {
+  font: 600 10px/1 var(--sans); letter-spacing: .16em;
+  text-transform: uppercase; color: var(--bone-3);
+}
+.field input, .field select {
+  font: 400 13.5px/1 var(--sans); color: var(--bone);
+  background: var(--panel); border: 1px solid var(--line);
+  padding: 9px 11px; height: 36px; min-width: 0;
+}
+.field input { width: 236px; }
+.field input::placeholder { color: var(--bone-3); }
+.field select { padding-right: 26px; cursor: pointer; }
+.field input:focus-visible, .field select:focus-visible,
+.seg button:focus-visible, .tier:focus-visible, .pager button:focus-visible,
+tbody tr:focus-visible, .reset:focus-visible {
+  outline: 2px solid var(--red); outline-offset: 1px;
+}
+
+.seg { display: inline-flex; height: 36px; border: 1px solid var(--line); }
+.seg button {
+  appearance: none; border: 0; border-right: 1px solid var(--line);
+  background: var(--panel); color: var(--bone-2);
+  font: 600 11.5px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase;
+  padding: 0 15px; cursor: pointer;
+}
+.seg button:last-child { border-right: 0; }
+.seg button:hover { color: var(--bone); background: var(--panel-2); }
+.seg button[aria-pressed="true"] { background: var(--red); color: var(--void); }
+
+.reset {
+  appearance: none; border: 0; background: none; color: var(--bone-3);
+  font: 600 11px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase;
+  cursor: pointer; padding: 12px 2px;
+}
+.reset:hover { color: var(--red); }
+
+.resultline {
+  margin: 16px 0 10px; font-size: 12.5px; color: var(--bone-3);
+  display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap;
+}
+.resultline b {
+  color: var(--bone); font-family: var(--mono); font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- table ---------- */
+.tablewrap { background: var(--panel); border: 1px solid var(--line); overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+thead th {
+  position: sticky; top: 0; z-index: 2; background: var(--void-2);
+  font: 600 10px/1 var(--sans); letter-spacing: .15em; text-transform: uppercase;
+  color: var(--bone-3); text-align: left; padding: 11px 12px; white-space: nowrap;
+  border-bottom: 1px solid var(--line-2);
+}
+thead th .sub {
+  display: block; text-transform: none; letter-spacing: 0;
+  font-size: 9.5px; font-weight: 400; color: var(--bone-3); margin-top: 2px;
+}
+th.num, td.num { text-align: right; }
+
+tbody tr { border-bottom: 1px solid var(--line); cursor: pointer; }
+tbody tr:last-child { border-bottom: 0; }
+tbody tr:hover, tbody tr.open { background: var(--panel-2); }
+tbody td { padding: 9px 12px; vertical-align: middle; }
+
+/* the tier colour bleeds in from the left edge of each row */
+td.rank {
+  font-family: var(--mono); font-variant-numeric: tabular-nums;
+  width: 70px; white-space: nowrap; color: var(--bone);
+  border-left: 3px solid var(--tc); font-weight: 500;
+}
+td.tier { width: 142px; }
+.tiercell { display: flex; align-items: center; gap: 8px; }
+.tiercell img { width: 26px; height: 26px; object-fit: contain; flex: none; }
+.tiercell span {
+  font: 600 10.5px/1 var(--sans); letter-spacing: .1em;
+  text-transform: uppercase; color: var(--tc);
+}
+
+.who { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.who .nm { font-weight: 600; color: var(--bone); }
+.dept { color: var(--bone-2); font-size: 12.5px; }
+
+.chip {
+  font: 700 9.5px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase;
+  padding: 4px 6px; white-space: nowrap;
+}
+.chip.unc  { background: var(--unc-wash);  color: var(--unc);  }
+.chip.duke { background: var(--duke-wash); color: var(--duke); }
+.chip.lead { background: none; color: var(--bone-3); border: 1px solid var(--line-2); }
+
+/* Elo + ensemble spread */
+td.elo { width: 186px; }
+.elo-row { display: flex; align-items: baseline; gap: 6px; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.elo-row .v { font-weight: 500; }
+.elo-row .sd { font-size: 10.5px; color: var(--bone-3); }
+.ci { position: relative; height: 4px; margin-top: 6px; background: var(--panel-3); }
+.ci i { position: absolute; top: 0; bottom: 0; left: var(--lo); right: var(--hi); background: var(--line-2); }
+.ci b { position: absolute; top: -3px; bottom: -3px; width: 2px; left: var(--mid); background: var(--red); }
+
+td.rating, td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+td.rating { font-weight: 500; }
+td.n { color: var(--bone-2); font-size: 12.5px; }
+
+/* ---------- expanded detail ---------- */
+tr.detail, tr.detail:hover { background: var(--panel-2); cursor: default; }
+tr.detail td { padding: 0 12px 16px; border-left: 3px solid var(--tc); }
+.detail-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 15px 24px; padding: 14px 0 0; border-top: 1px solid var(--line-2);
+}
+.detail-grid div { display: flex; flex-direction: column; gap: 3px; }
+.detail-grid dt {
+  font: 600 9.5px/1 var(--sans); letter-spacing: .13em;
+  text-transform: uppercase; color: var(--bone-3);
+}
+.detail-grid dd {
+  margin: 0; font-family: var(--mono); font-size: 13px;
+  font-variant-numeric: tabular-nums; color: var(--bone);
+}
+.detail-grid dd small { color: var(--bone-3); }
+.delta.up { color: var(--up); }
+.delta.down { color: var(--down); }
+.detail-note {
+  grid-column: 1 / -1; font-family: var(--sans); font-size: 12px;
+  color: var(--bone-3); max-width: 78ch; line-height: 1.5; margin: 0;
+}
+
+.empty { padding: 52px 20px; text-align: center; color: var(--bone-3); }
+.empty strong {
+  display: block; color: var(--bone-2); margin-bottom: 5px;
+  font-family: var(--display); font-size: 16px; letter-spacing: .08em; text-transform: uppercase;
+}
+
+/* ---------- pager ---------- */
+.pager { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 18px; }
+.pager button {
+  appearance: none; background: var(--panel); color: var(--bone-2);
+  border: 1px solid var(--line);
+  font: 600 11px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase;
+  padding: 10px 16px; cursor: pointer;
+}
+.pager button:hover:not(:disabled) { border-color: var(--red); color: var(--bone); }
+.pager button:disabled { opacity: .35; cursor: default; }
+.pager span { color: var(--bone-3); font-family: var(--mono); font-size: 12.5px; }
+
+/* ---------- footer ---------- */
+footer { margin-top: 46px; padding-top: 22px; border-top: 1px solid var(--line); }
+footer .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 26px 40px; }
+footer h3 {
+  font-family: var(--display); font-weight: 600; font-size: 13px;
+  letter-spacing: .15em; text-transform: uppercase; color: var(--bone-2); margin: 0 0 9px;
+}
+footer p { margin: 0 0 10px; color: var(--bone-3); font-size: 12.5px; line-height: 1.6; max-width: 66ch; }
+footer strong { color: var(--bone-2); }
+footer code {
+  font-family: var(--mono); font-size: 11px; background: var(--panel);
+  padding: 1px 5px; color: var(--bone-2);
+}
+.disclaimer {
+  margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line);
+  color: var(--bone-3); font-size: 11.5px; line-height: 1.6; max-width: 90ch;
+}
+
+@media (max-width: 1000px) {
+  td.dept, th.dept { display: none; }
+}
+@media (max-width: 760px) {
+  .tiers { grid-template-columns: repeat(5, 1fr); row-gap: 14px; }
+  .field input { width: 100%; }
+  .field { flex: 1 1 170px; }
+  .stats { margin-left: 0; }
+  .stats > div:first-child { padding-left: 0; }
+  td.tier span { display: none; }
+  td.tier { width: 48px; }
+}
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="shell">
+  <header class="masthead">
+    <div class="brand">
+      <div class="eyebrow">UNC Chapel Hill &middot; Duke</div>
+      <h1>Radiant <em>Ranked</em></h1>
+      <p class="tagline">Every rated professor at UNC and Duke, run through a simulated-Elo tournament and placed into VALORANT&rsquo;s competitive tiers.</p>
+    </div>
+    <dl class="stats" id="stats"></dl>
+  </header>
+
+  <div class="sec-head">
+    <h2>Rank Distribution</h2>
+    <p id="dist-note"></p>
+  </div>
+  <section class="dist cut">
+    <div class="chart" id="tiers"></div>
+    <div class="families" id="families"></div>
+  </section>
+
+  <section class="controls">
+    <div class="field">
+      <label for="q">Search</label>
+      <input id="q" type="search" placeholder="Professor or department" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="school">School</label>
+      <div class="seg" id="school" role="group" aria-label="Filter by school"></div>
+    </div>
+    <div class="field">
+      <label for="dept">Department</label>
+      <select id="dept"></select>
+    </div>
+    <div class="field">
+      <label for="minn">Min ratings</label>
+      <select id="minn"></select>
+    </div>
+    <div class="field">
+      <label for="sort">Sort</label>
+      <select id="sort"></select>
+    </div>
+    <button class="reset" id="reset" type="button">Clear</button>
+  </section>
+
+  <p class="resultline" id="resultline"></p>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Rank</th>
+          <th scope="col">Tier</th>
+          <th scope="col">Professor</th>
+          <th scope="col" class="dept">Department</th>
+          <th scope="col">Elo<span class="sub">&plusmn;1&sigma; across tournaments</span></th>
+          <th scope="col" class="num">Rating</th>
+          <th scope="col" class="num">Ratings</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+
+  <nav class="pager" id="pager" aria-label="Pagination"></nav>
+
+  <footer>
+    <div class="cols">
+      <div>
+        <h3>How a professor gets ranked</h3>
+        <p>
+          RateMyProfessors publishes an average and a rating count, never head-to-head results, so
+          matches are simulated. Each professor becomes a Beta posterior built from their average
+          and how many ratings back it, pulled toward the field mean of
+          <span id="f-prior">3.79</span> by a weak prior. Every match draws one sample from each
+          professor&rsquo;s posterior, the higher draw wins, and Elo updates normally. The board
+          averages <span id="f-tourn">10</span> independent tournaments of
+          <span id="f-rounds">500</span> rounds.
+        </p>
+        <p>
+          A 5.0 held up by five ratings therefore loses to a 4.7 backed by two hundred &mdash; the
+          thin posterior is wide enough that it regresses toward the field. Professors with fewer
+          than <span id="f-minr">5</span> ratings are not ranked at all.
+        </p>
+      </div>
+      <div>
+        <h3>How tiers are assigned</h3>
+        <p>
+          All 25 divisions reproduce VALORANT&rsquo;s published population distribution by board
+          position, not by score: the top 0.05% are Radiant, the next 0.17% Immortal 3, down to the
+          bottom 0.57% in Iron 1. The published shares total 100.02% rather than 100, so assignment
+          normalises by that actual total. Cumulative share crosses 50% inside Gold 2, so Gold
+          straddles the median professor, as it does in game.
+        </p>
+        <p>
+          <strong>Adjacent ranks are often not distinguishable.</strong> The bar under each Elo
+          spans one standard deviation across the tournaments. Where two bars overlap, the data
+          does not separate those professors and the order between them is arbitrary &mdash;
+          including across a tier boundary.
+        </p>
+      </div>
+    </div>
+    <p class="disclaimer" id="f-stamp"></p>
+  </footer>
+</div>
+
+<script>
+const DATA = __PAYLOAD__;
+
+const F = { NAME:0, DEPT:1, SCHOOL:2, ELO:3, SD:4, AVG:5, N:6, WTA:7, DIFF:8,
+            DRANK:9, DSIZE:10, SRANK:11, SSIZE:12, NAIVE:13, SHRUNK:14, TIER:15 };
+
+const PAGE_SIZE = 50;
+const rowsEl = document.getElementById('rows');
+const pagerEl = document.getElementById('pager');
+const resultEl = document.getElementById('resultline');
+
+const state = { q:'', school:-1, dept:'', minn:0, tier:-1, family:'', sort:'rank', page:0, open:null };
+
+const fmt = n => n.toLocaleString('en-US');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* Global rank is fixed at build time, so filtering never renumbers the board. */
+const ALL = DATA.rows.map((r, i) => ({ r, rank: i + 1 }));
+
+/* ---------- header stats ---------- */
+(function stats() {
+  const m = DATA.meta;
+  const items = [
+    ['Ranked', fmt(m.ranked)],
+    ['Radiant', fmt(DATA.tiers[0].count)],
+    ['Departments', fmt(m.departments)],
+    ['Ratings', fmt(m.total_ratings)]
+  ];
+  document.getElementById('stats').innerHTML =
+    items.map(([dt, dd]) => `<div><dt>${dt}</dt><dd>${dd}</dd></div>`).join('');
+
+  document.getElementById('f-tourn').textContent = m.tournaments;
+  document.getElementById('f-rounds').textContent = m.rounds;
+  document.getElementById('f-minr').textContent = m.min_ratings;
+  document.getElementById('f-prior').textContent = m.prior_mean_rating.toFixed(2);
+  document.getElementById('dist-note').textContent =
+    'All 25 divisions, low to high. Bar height is linear in share of the field — '
+    + 'click a division or a tier name to filter the board.';
+  document.getElementById('f-stamp').innerHTML =
+    'Ratings pulled from RateMyProfessors on ' + m.ingested_on + '; ranked with seed ' + m.seed +
+    ', so a re-run reproduces this board exactly. Only average rating and rating count drive the ' +
+    'score — difficulty and would-take-again are shown for context but are not part of it, and no ' +
+    'adjustment is made for a department&rsquo;s grading culture. Rank tier artwork and the tier ' +
+    'colours are property of Riot Games; this is an unofficial fan project and is not endorsed by ' +
+    'Riot Games or by either university.';
+})();
+
+/* ---------- rank distribution chart ---------- */
+const tiersEl = document.getElementById('tiers');
+const famsEl = document.getElementById('families');
+
+function paintFilters() {
+  for (const c of tiersEl.children) c.setAttribute('aria-pressed', +c.dataset.i === state.tier);
+  for (const c of famsEl.children) c.setAttribute('aria-pressed', c.dataset.fam === state.family);
+}
+
+(function distribution() {
+  /* DATA.tiers is best-first because that is board order; the chart reads
+     low-to-high, so display reversed while keeping the original index. */
+  const shown = DATA.tiers.map((t, i) => ({ ...t, i })).reverse();
+  const max = Math.max(...shown.map(t => t.actual_share));
+
+  tiersEl.innerHTML = shown.map(t => `
+    <button class="tier" type="button" data-i="${t.i}" aria-pressed="false"
+            style="--tc:${t.color}"
+            title="${esc(t.name)} — ${fmt(t.count)} professors, ranks ${fmt(t.first_rank)}–${fmt(t.last_rank)} (target ${t.target_share}%)">
+      <div class="plot"><div class="bar" style="--h:${(t.actual_share / max * 100).toFixed(2)}%"></div></div>
+      <div class="baseline"></div>
+      <img src="${t.icon}" alt="${esc(t.name)}" width="30" height="30">
+      <div class="tpct">${t.actual_share.toFixed(1)}</div>
+    </button>`).join('');
+
+  famsEl.innerHTML = DATA.families.slice().reverse().map(f => `
+    <button class="fam" type="button" data-fam="${esc(f.name)}" aria-pressed="false"
+            style="--fc:${f.color};grid-column:span ${f.divisions}"
+            title="${esc(f.name)} — ${fmt(f.count)} professors, ranks ${fmt(f.first_rank)}–${fmt(f.last_rank)}">
+      ${esc(f.name)}<small>${f.actual_share.toFixed(1)}%</small>
+    </button>`).join('');
+
+  tiersEl.addEventListener('click', e => {
+    const b = e.target.closest('.tier'); if (!b) return;
+    const i = +b.dataset.i;
+    state.tier = state.tier === i ? -1 : i;
+    state.family = '';
+    state.page = 0; state.open = null;
+    paintFilters(); render();
+  });
+
+  famsEl.addEventListener('click', e => {
+    const b = e.target.closest('.fam'); if (!b) return;
+    const name = b.dataset.fam;
+    state.family = state.family === name ? '' : name;
+    state.tier = -1;
+    state.page = 0; state.open = null;
+    paintFilters(); render();
+  });
+})();
+
+/* ---------- controls ---------- */
+(function controls() {
+  const seg = document.getElementById('school');
+  seg.innerHTML = [{ label:'All', i:-1 }].concat(DATA.schools.map((s, i) => ({ label:s.label, i })))
+    .map(o => `<button type="button" data-i="${o.i}" aria-pressed="${o.i === state.school}">${o.label}</button>`).join('');
+  seg.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    state.school = +b.dataset.i; state.page = 0; state.open = null;
+    [...seg.children].forEach(c => c.setAttribute('aria-pressed', c === b));
+    render();
+  });
+
+  document.getElementById('dept').innerHTML = '<option value="">All departments</option>' +
+    DATA.departments.map((d, i) => [d, i]).sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([d, i]) => `<option value="${i}">${esc(d)}</option>`).join('');
+
+  document.getElementById('minn').innerHTML = [0, 10, 25, 50, 100]
+    .map(v => `<option value="${v}">${v ? v + '+' : DATA.meta.min_ratings + '+ (all ranked)'}</option>`).join('');
+
+  document.getElementById('sort').innerHTML = [
+    ['rank',  'Elo rank'],
+    ['avg',   'Average rating'],
+    ['n',     'Most ratings'],
+    ['firm',  'Most certain rank'],
+    ['climb', 'Biggest climb vs. raw average'],
+    ['name',  'Name (A–Z)']
+  ].map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+
+  const q = document.getElementById('q');
+  let t;
+  q.addEventListener('input', () => {
+    clearTimeout(t);
+    t = setTimeout(() => { state.q = q.value.trim().toLowerCase(); state.page = 0; state.open = null; render(); }, 110);
+  });
+  for (const [id, key, cast] of [['dept','dept',v=>v], ['minn','minn',Number], ['sort','sort',v=>v]]) {
+    document.getElementById(id).addEventListener('change', e => {
+      state[key] = cast(e.target.value); state.page = 0; state.open = null; render();
+    });
+  }
+
+  document.getElementById('reset').addEventListener('click', () => {
+    Object.assign(state, { q:'', school:-1, dept:'', minn:0, tier:-1, family:'', sort:'rank', page:0, open:null });
+    q.value = ''; document.getElementById('dept').value = '';
+    document.getElementById('minn').value = '0'; document.getElementById('sort').value = 'rank';
+    [...seg.children].forEach(c => c.setAttribute('aria-pressed', c.dataset.i === '-1'));
+    paintFilters();
+    render();
+  });
+})();
+
+/* ---------- filter + sort ---------- */
+function selection() {
+  const q = state.q, dept = state.dept === '' ? -1 : +state.dept;
+  let out = ALL;
+
+  if (state.school >= 0) out = out.filter(o => o.r[F.SCHOOL] === state.school);
+  if (state.tier >= 0)   out = out.filter(o => o.r[F.TIER] === state.tier);
+  if (state.family)      out = out.filter(o => DATA.tiers[o.r[F.TIER]].family === state.family);
+  if (dept >= 0)         out = out.filter(o => o.r[F.DEPT] === dept);
+  if (state.minn)        out = out.filter(o => o.r[F.N] >= state.minn);
+  if (q) out = out.filter(o =>
+    o.r[F.NAME].toLowerCase().includes(q) ||
+    DATA.departments[o.r[F.DEPT]].toLowerCase().includes(q));
+
+  const by = {
+    rank:  (a, b) => a.rank - b.rank,
+    avg:   (a, b) => b.r[F.AVG] - a.r[F.AVG] || a.rank - b.rank,
+    n:     (a, b) => b.r[F.N] - a.r[F.N] || a.rank - b.rank,
+    firm:  (a, b) => a.r[F.SD] - b.r[F.SD] || a.rank - b.rank,
+    climb: (a, b) => (b.r[F.NAIVE] - b.rank) - (a.r[F.NAIVE] - a.rank) || a.rank - b.rank,
+    name:  (a, b) => a.r[F.NAME].localeCompare(b.r[F.NAME])
+  }[state.sort];
+
+  return out.slice().sort(by);
+}
+
+/* ---------- render ---------- */
+function render() {
+  const sel = selection();
+  const pages = Math.max(1, Math.ceil(sel.length / PAGE_SIZE));
+  if (state.page >= pages) state.page = pages - 1;
+  const page = sel.slice(state.page * PAGE_SIZE, (state.page + 1) * PAGE_SIZE);
+
+  const bits = [];
+  if (state.tier >= 0) bits.push(DATA.tiers[state.tier].name);
+  if (state.family) bits.push(state.family);
+  if (state.school >= 0) bits.push(DATA.schools[state.school].label);
+  resultEl.innerHTML = (sel.length === ALL.length)
+    ? `<b>${fmt(sel.length)}</b> professors ranked`
+    : `<b>${fmt(sel.length)}</b> of ${fmt(ALL.length)} match${bits.length ? ' &mdash; ' + esc(bits.join(' · ')) : ''}`;
+
+  if (!page.length) {
+    rowsEl.innerHTML = `<tr><td colspan="7" class="empty"><strong>No professors match</strong>Try a different tier or department, or clear the filters.</td></tr>`;
+    pagerEl.innerHTML = '';
+    return;
+  }
+
+  /* The confidence scale spans only the rows on screen, so a band is only ever
+     compared against others visible beside it. */
+  let lo = Infinity, hi = -Infinity;
+  for (const o of page) {
+    lo = Math.min(lo, o.r[F.ELO] - o.r[F.SD]);
+    hi = Math.max(hi, o.r[F.ELO] + o.r[F.SD]);
+  }
+  const span = (hi - lo) || 1;
+  const pct = v => ((v - lo) / span) * 100;
+
+  rowsEl.innerHTML = page.map(o => {
+    const r = o.r;
+    const school = DATA.schools[r[F.SCHOOL]];
+    const tier = DATA.tiers[r[F.TIER]];
+    const isOpen = state.open === o.rank;
+    const lead = r[F.DRANK] === 1
+      ? `<span class="chip lead">#1 ${esc(DATA.departments[r[F.DEPT]])}</span>` : '';
+
+    const main =
+      `<tr tabindex="0" data-rank="${o.rank}" class="${isOpen ? 'open' : ''}" aria-expanded="${isOpen}" style="--tc:${tier.color}">
+        <td class="rank">${fmt(o.rank)}</td>
+        <td class="tier"><div class="tiercell"><img src="${tier.icon}" alt="${esc(tier.name)}" width="26" height="26"><span>${esc(tier.name)}</span></div></td>
+        <td><div class="who"><span class="nm">${esc(r[F.NAME])}</span>
+          <span class="chip ${school.cls}">${school.label}</span>${lead}</div></td>
+        <td class="dept">${esc(DATA.departments[r[F.DEPT]])}</td>
+        <td class="elo">
+          <div class="elo-row"><span class="v">${r[F.ELO].toFixed(0)}</span><span class="sd">&plusmn;${r[F.SD].toFixed(0)}</span></div>
+          <div class="ci"><i style="--lo:${pct(r[F.ELO] - r[F.SD]).toFixed(2)}%;--hi:${(100 - pct(r[F.ELO] + r[F.SD])).toFixed(2)}%"></i><b style="--mid:${pct(r[F.ELO]).toFixed(2)}%"></b></div>
+        </td>
+        <td class="num rating">${r[F.AVG].toFixed(1)}</td>
+        <td class="num n">${fmt(r[F.N])}</td>
+      </tr>`;
+
+    if (!isOpen) return main;
+
+    const delta = r[F.NAIVE] - o.rank;
+    const deltaTxt = delta === 0 ? 'no change' : (delta > 0 ? '+' : '−') + fmt(Math.abs(delta)) + ' places';
+    const wta = r[F.WTA] >= 0 ? r[F.WTA].toFixed(0) + '%' : 'no data';
+
+    return main + `<tr class="detail" style="--tc:${tier.color}"><td colspan="7"><div class="detail-grid">
+        <div><dt>Tier</dt><dd style="color:${tier.color}">${esc(tier.name)}</dd></div>
+        <div><dt>Shrunk rating</dt><dd>${r[F.SHRUNK].toFixed(2)} <small>/ 5</small></dd></div>
+        <div><dt>Raw average</dt><dd>${r[F.AVG].toFixed(1)} <small>/ 5</small></dd></div>
+        <div><dt>Difficulty</dt><dd>${r[F.DIFF] ? r[F.DIFF].toFixed(1) : '—'} <small>/ 5</small></dd></div>
+        <div><dt>Would take again</dt><dd>${wta}</dd></div>
+        <div><dt>In ${esc(DATA.departments[r[F.DEPT]])}</dt><dd>${fmt(r[F.DRANK])} <small>of ${fmt(r[F.DSIZE])}</small></dd></div>
+        <div><dt>At ${school.label}</dt><dd>${fmt(r[F.SRANK])} <small>of ${fmt(r[F.SSIZE])}</small></dd></div>
+        <div><dt>vs. raw average</dt><dd class="delta ${delta > 0 ? 'up' : delta < 0 ? 'down' : ''}">${deltaTxt}</dd></div>
+        <p class="detail-note">Elo puts ${esc(r[F.NAME])} at ${fmt(o.rank)} against ${fmt(r[F.NAIVE])} if the board were sorted by raw average alone. The shrunk rating is what ${fmt(r[F.N])} rating${r[F.N] === 1 ? '' : 's'} actually support once pulled toward the field mean.</p>
+      </div></td></tr>`;
+  }).join('');
+
+  pagerEl.innerHTML =
+    `<button type="button" id="prev" ${state.page === 0 ? 'disabled' : ''}>Prev</button>
+     <span>${state.page + 1} / ${fmt(pages)}</span>
+     <button type="button" id="next" ${state.page >= pages - 1 ? 'disabled' : ''}>Next</button>`;
+  const prev = document.getElementById('prev'), next = document.getElementById('next');
+  const go = d => { state.page += d; state.open = null; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  if (prev) prev.onclick = () => go(-1);
+  if (next) next.onclick = () => go(1);
+}
+
+function toggle(rank) { state.open = state.open === rank ? null : rank; render(); }
+rowsEl.addEventListener('click', e => {
+  const tr = e.target.closest('tr[data-rank]'); if (tr) toggle(+tr.dataset.rank);
+});
+rowsEl.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const tr = e.target.closest('tr[data-rank]');
+  if (tr) { e.preventDefault(); toggle(+tr.dataset.rank); }
+});
+
+render();
+</script>
