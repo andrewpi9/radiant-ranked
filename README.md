@@ -1,102 +1,41 @@
 # Radiant Ranked
 
-Every rated professor at UNC Chapel Hill and Duke, ranked by a simulated-Elo
-tournament over their RateMyProfessors ratings and sorted into VALORANT's 25
-competitive divisions.
+It ranks every professor at UNC and Duke with VALORANT ranks so you can
+actually compare them to each other.
 
 **[Live site →](https://andrewpi9.github.io/radiant-ranked/)**
 
-4,033 ranked professors · 7,854 pulled · 96,569 ratings · 117 departments
+4,033 professors · 7,854 pulled · 96,569 ratings · 117 departments
 
 ---
 
-## The interesting part: the first version wasn't reproducible
+## Why I made this
 
-The ranking works by simulating matches. Each professor is a probability
-distribution over their true quality, every match draws a sample from each of
-two professors, and Elo updates on who drew higher.
+RateMyProfessors is annoying to use. If you want to compare two professors you
+have to open them in separate tabs and go back and forth — check the rating,
+check how many reviews it's actually based on, read the reviews, go back. The
+search is bad. The whole interface is bad for the one thing people use it for,
+which is deciding between a couple of options during registration.
 
-The first working version looked fine — until I changed the random seed and
-**18 of the top 50 professors changed.** A leaderboard whose podium depends on
-an RNG seed is not a leaderboard.
+So I put every professor at UNC and Duke on one page, in one order, and made it
+searchable and filterable.
 
-The obvious fix is more rounds. I measured it instead:
+## Why VALORANT
 
-| Rounds | Spearman ρ | top-10 | top-50 |
-|---|---|---|---|
-| 200 | 0.9857 | 5/10 | 32/50 |
-| 500 | 0.9912 | 7/10 | 40/50 |
-| 1,000 | 0.9932 | 8/10 | 42/50 |
-| 4,000 | 0.9973 | 8/10 | 45/50 |
+I've played since it came out, mostly with friends. I'm Radiant.
 
-Twenty times the compute bought 13 places out of 50. The noise wasn't coming
-from too few rounds — it was a floor in the estimator itself. At the top of the
-board many professors have nearly identical distributions, and *some of that
-churn is honest*: they are genuinely tied within what the data can resolve.
+Putting professors on the same ladder started as a joke, but it ended up being
+the clearest way to show the ranking. Everyone already knows roughly what Gold
+means. Nobody knows what 4.3 out of 5 means — especially when that 4.3 is from
+six people and the 4.1 next to it is from three hundred.
 
-So I fixed what could be fixed, by averaging independent tournaments rather than
-running one longer. At equal compute this is strictly better:
+Out of 4,033 professors, **two** are Radiant.
 
-| Configuration | Spearman ρ | top-10 | top-50 | top-100 |
-|---|---|---|---|---|
-| 1 × 2,500 rounds | 0.9939 | 6/10 | 42/50 | 82/100 |
-| 5 × 500 rounds | 0.9982 | 8/10 | 42/50 | 93/100 |
-| **10 × 500 rounds** | **0.9991** | **10/10** | **47/50** | **96/100** |
+## What a rank actually means
 
-Ten averaged tournaments is what ships. Every professor also carries the
-standard deviation of their Elo across those runs, and the site draws it as a
-band under each row — **where two bands overlap, the ranks between them are not
-real**, and the page says so rather than presenting a rank as exact.
-
-### Checking the simulation against the maths
-
-A simulation is only worth trusting if something independent agrees with it. The
-tournament is really a Monte Carlo estimate of a quantity you can compute
-directly: each professor's probability of beating a uniformly random opponent.
-`radiant_rank/verify.py` computes that exactly on a 1,000-bin grid — no RNG, no
-sampling — and compares the orderings:
-
-```
-Spearman rho ................ 0.99948
-top-10 agreement ............ 9/10
-top-50 agreement ............ 47/50
-median rank shift ........... 20
-```
-
-Run it yourself with `make rank-verify`.
-
----
-
-## How a professor gets ranked
-
-RateMyProfessors publishes an average and a rating count, never head-to-head
-results, so the matches have to be invented.
-
-1. **Posterior.** A professor's average is rescaled to [0,1] and treated as a
-   success rate over `num_ratings` trials, giving a Beta posterior with a weak
-   prior (5 pseudo-ratings) centred on the rating-weighted field mean of 3.79/5.
-2. **Matches.** Each round shuffles the field, pairs it off, and draws one
-   sample per professor. Higher draw wins. Standard Elo update, K decaying 32→6.
-3. **Ensemble.** Ten independent tournaments, averaged.
-
-The posterior is what makes this more than a sort. A 5.0 held up by five ratings
-has a wide distribution and regresses toward the field; a 4.7 backed by two
-hundred has a narrow one and holds. Concretely, against a naive sort by raw
-average:
-
-| | Rating | Naive rank | Elo rank |
-|---|---|---|---|
-| Michelle Sheran-Andrews | 4.6 over 221 ratings | #969 | **#266** |
-| Thomas Nechyba | 4.7 over 194 ratings | #786 | **#118** |
-| *(thin 5.0s)* | 5.0 over 5 ratings | ~#280 | ~#960 |
-
-### Tiers
-
-The 25 VALORANT divisions are assigned **by board position, not by score**,
-reproducing the game's published population distribution. Those published shares
-total 100.02%, not 100, so assignment normalises by the actual total. Cumulative
-share crosses 50% inside Gold 2 — so Gold straddles the median professor, as it
-does in game.
+The tiers follow VALORANT's real population distribution, so they mean the same
+thing they do in game. Being Diamond here means you're in roughly the top 12% of
+professors, same as Diamond means in your competitive queue.
 
 | Tier | Share | Professors |
 |---|---|---|
@@ -110,38 +49,103 @@ does in game.
 | Bronze | 15.72% | 634 |
 | Iron | 4.67% | 188 |
 
+All 25 divisions are in there, Iron 1 through Radiant.
+
+I had William Davis for MATH 381 and he was one of my favorite professors at
+UNC. He came out Ascendant 1, rank 206. That's about where I'd have put him.
+
 ---
 
-## Getting the data out of RateMyProfessors
+## How the ranking works
 
-There is no public API. The site runs on an undocumented GraphQL endpoint, and
-most of the community knowledge about it is out of date. Things that cost real
-time to work out, all verified against the live API:
+The hard part is that a 5.0 from 5 students is not better than a 4.7 from 200,
+but sorting by average says it is. Every "best professors" list has this problem
+and it puts noise at the top.
 
-- **The documented school-lookup query no longer exists.** Every guide uses an
-  `autocomplete` root field; it now returns *"Cannot query field autocomplete on
-  type Query"*. Schools are resolved instead by base64-encoding
-  `School-<legacyId>` and verifying with `node(id:)`.
-- **The widely repeated "1,000 result cap" does not apply here.** Cursor
-  pagination walks an entire school — verified 4,915/4,915 for UNC. No
-  letter-sharding or department-sharding needed.
-- **The API serves duplicate professors.** Duke returned 5 duplicate teacher IDs
-  in a single uninterrupted pass, UNC 32. So `resultCount` counts *rows*, not
-  people: UNC's 4,915 rows are 4,883 professors. Validation compares rows
-  fetched against `resultCount` and reports the dedup separately — comparing the
-  deduped count instead makes a complete pull look truncated.
-- **A stale cursor silently resets to page 0** instead of erroring, so a bad
-  resume returns plausible wrong data. Deduping by ID on write is what protects
-  against it.
-- **Unrated professors use sentinels, not nulls**: `num_ratings: 0`,
-  `avg_rating: 0`, `would_take_again_percent: -1`. Averaging a `-1` percentage
-  would quietly corrupt the board, so the raw layer preserves them verbatim and
-  the ranking excludes anyone under 5 ratings.
+So professors don't get sorted — they play each other.
 
-The ingest is resumable. Progress is checkpointed after every page, and the
-final JSON is only written once every school completes, so a crash never leaves
-a half-populated dataset behind. Any GraphQL `errors` field is treated as fatal
-and logged in full rather than continuing on partial data.
+1. **Each professor becomes a range instead of a number.** Their average and
+   their review count together describe how good they probably are. Five reviews
+   gives a wide range, three hundred gives a narrow one.
+2. **Matches are simulated.** Two professors are picked, a value is drawn from
+   each of their ranges, higher value wins, and both get an Elo update like a
+   chess ladder.
+3. **This runs a lot.** Ten separate tournaments of 500 rounds each, averaged.
+
+A professor with five reviews swings wildly between matches and loses a lot of
+them. A professor with three hundred reviews lands in nearly the same place every
+time. Confidence has to be earned, not assumed.
+
+What it does to the board, compared to just sorting by average:
+
+| | Rating | Sorted by average | Actual rank |
+|---|---|---|---|
+| Michelle Sheran-Andrews | 4.6 from 221 reviews | #969 | **#266** |
+| Thomas Nechyba | 4.7 from 194 reviews | #786 | **#118** |
+| *typical thin 5.0* | 5.0 from 5 reviews | ~#280 | ~#960 |
+
+### Two ranks next to each other often don't mean anything
+
+This is the part I'd want someone to know before trusting it.
+
+Because the matches are random, the same professor doesn't land on exactly the
+same Elo every time. The site draws that spread as a bar under each rating. Where
+two bars overlap, the data genuinely can't tell those professors apart, and the
+order between them is arbitrary — including when a tier boundary falls between
+them.
+
+A single tournament wasn't good enough to publish. Changing the random seed moved
+18 of the top 50. Running longer barely helped:
+
+| Rounds | top-50 stays the same |
+|---|---|
+| 200 | 32/50 |
+| 1,000 | 42/50 |
+| 4,000 | 45/50 |
+
+Twenty times the work bought 13 places. The randomness wasn't from too few
+rounds — at the top, professors are genuinely close enough that no amount of
+simulating separates them. Averaging ten independent tournaments instead of
+running one long one gets it to 47/50 and a top 10 that doesn't move.
+
+### Checking it against math instead of more simulation
+
+Simulating matches is really just a slow way of asking "what are the odds this
+professor beats a random other professor." That number can be calculated
+directly, without any randomness at all. `radiant_rank/verify.py` does that and
+compares the two orderings:
+
+```
+Spearman rho ................ 0.99948
+top-10 agreement ............ 9/10
+top-50 agreement ............ 47/50
+```
+
+They agree, so the simulation isn't doing anything weird. `make rank-verify`.
+
+---
+
+## Getting the data
+
+RateMyProfessors has no public API. The site runs on a hidden GraphQL endpoint,
+and most of what's written online about it is out of date. Things I had to work
+out against the live API:
+
+- **The school lookup every guide uses doesn't exist anymore.** They all use an
+  `autocomplete` field that now returns *"Cannot query field autocomplete on type
+  Query."* Schools have to be looked up by ID instead.
+- **The "you can only get 1,000 results" thing isn't true here.** Paging through
+  gets the whole school — 4,915 of 4,915 for UNC.
+- **The API sends some professors twice.** Duke returned 5 duplicates in one
+  clean run, UNC 32. So the count it reports is rows, not people: UNC's 4,915
+  rows are 4,883 actual professors.
+- **A bad page cursor silently starts over from the beginning** instead of
+  erroring, so a failed resume returns data that looks fine and isn't.
+- **Professors with no reviews aren't blank, they're zeros** — and
+  would-take-again is `-1`. Averaging that in would quietly wreck everything.
+
+The scraper can be stopped and restarted without losing progress, and it refuses
+to write a half-finished dataset.
 
 ---
 
@@ -150,54 +154,53 @@ and logged in full rather than continuing on partial data.
 ```bash
 pip install -r requirements.txt
 
-make ingest    # pull from RateMyProfessors (resumes if interrupted)
-make rank      # simulated-Elo tournament -> data/rankings.json
-make site      # build the page -> web/index.html
+make ingest    # pull from RateMyProfessors (can resume)
+make rank      # run the tournaments
+make site      # build the page
 make all       # all three
 ```
 
-The pulled data is committed, so `make rank` and `make site` work from a clean
-clone without touching RateMyProfessors.
+The data is included, so `make rank` and `make site` work on a fresh clone
+without scraping anything.
 
 ```bash
 make test         # 49 tests
-make rank-verify  # check the simulation against the closed form
+make rank-verify  # check the simulation against the direct calculation
 make serve        # http://localhost:8000/web/
 ```
 
-### Layout
-
 ```
-radiant_ingest/   GraphQL client, retry/backoff, checkpointing, validation
-radiant_rank/     Beta model, Elo ensemble, tier assignment, verification
-web/              single-file site; data + rank badges embedded as data URIs
-tests/            49 tests
+radiant_ingest/   scraper, retries, resume, validation
+radiant_rank/     the ranking, tiers, verification
+web/              the site — one HTML file, data and rank icons built in
+tests/
 ```
-
-The site is one self-contained HTML file. The data is embedded rather than
-fetched because `file://` blocks a sibling `fetch` under CORS, and the 2.7 MB
-ranking packs to ~313 KB by interning names into positional arrays. The 25 rank
-badges are inlined as base64, downscaled 256px → 96px by
-`scripts/fetch_rank_icons.py` (at full size they would add ~860 KB per page load
-for no visible gain).
 
 ---
 
-## Known limits
+## What I'd do next
 
-- **Only average rating and rating count drive the score.** Difficulty and
-  would-take-again are displayed but unused.
-- **No adjustment for grading culture.** A language lecturer and an organic
-  chemist compete on the same scale, which is not really fair to either.
-- **The ≥5-ratings threshold excludes 3,821 of 7,854 professors** (49%). Below
-  that the posterior is so wide a rank would be noise with a number on it.
-- **Self-selection.** RateMyProfessors is voluntary, so the underlying ratings
-  over-represent students with strong opinions. Nothing here corrects for that,
-  and no ranking built on this data can.
+- Every school, not just UNC and Duke
+- Other rank systems — other games, or chess titles
+- Keep the data current instead of a one-time pull
+- Eventually let people review professors here directly instead of pulling from
+  RateMyProfessors at all
+
+## What's wrong with it right now
+
+- Only the rating and the review count affect the rank. Difficulty and
+  would-take-again are shown but not used.
+- Nothing accounts for departments grading differently. A language lecturer and
+  an organic chemistry professor are on the same ladder, which isn't really fair
+  to either of them.
+- Professors with under 5 reviews aren't ranked at all. That's 3,821 of the
+  7,854 I pulled, which is a lot of people left out.
+- RateMyProfessors reviews are voluntary, so they lean toward people with strong
+  feelings either way. Nothing here fixes that, and nothing built on this data
+  could.
 
 ---
 
-Unofficial fan project. Rank artwork and tier colours are property of Riot
-Games; not endorsed by Riot Games, UNC Chapel Hill, or Duke University. Rating
-data belongs to RateMyProfessors and is used here for a non-commercial student
-project.
+Made this for me and my friends. Unofficial fan project — rank icons and tier
+colors belong to Riot Games, and it isn't endorsed by Riot, UNC, or Duke. Review
+data is RateMyProfessors', used here for a non-commercial student project.

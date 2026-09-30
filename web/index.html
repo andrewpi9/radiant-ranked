@@ -373,7 +373,7 @@ footer code {
     <div class="brand">
       <div class="eyebrow">UNC Chapel Hill &middot; Duke</div>
       <h1>Radiant <em>Ranked</em></h1>
-      <p class="tagline">Every rated professor at UNC and Duke, run through a simulated-Elo tournament and placed into VALORANT&rsquo;s competitive tiers.</p>
+      <p class="tagline">Every professor at UNC and Duke on one page, ranked with VALORANT tiers so you can actually compare them to each other.</p>
     </div>
     <dl class="stats" id="stats"></dl>
   </header>
@@ -437,34 +437,36 @@ footer code {
       <div>
         <h3>How a professor gets ranked</h3>
         <p>
-          RateMyProfessors publishes an average and a rating count, never head-to-head results, so
-          matches are simulated. Each professor becomes a Beta posterior built from their average
-          and how many ratings back it, pulled toward the field mean of
-          <span id="f-prior">3.79</span> by a weak prior. Every match draws one sample from each
-          professor&rsquo;s posterior, the higher draw wins, and Elo updates normally. The board
-          averages <span id="f-tourn">10</span> independent tournaments of
-          <span id="f-rounds">500</span> rounds.
+          A 5.0 from five students isn&rsquo;t better than a 4.7 from two hundred, but sorting by
+          average says it is. So professors don&rsquo;t get sorted here &mdash; they play each other.
         </p>
         <p>
-          A 5.0 held up by five ratings therefore loses to a 4.7 backed by two hundred &mdash; the
-          thin posterior is wide enough that it regresses toward the field. Professors with fewer
-          than <span id="f-minr">5</span> ratings are not ranked at all.
+          Each professor becomes a range instead of a number: their average and their review count
+          together describe how good they probably are. Five reviews gives a wide range, three
+          hundred gives a narrow one. Two professors get picked, a value is drawn from each range,
+          higher value wins, and both get an Elo update like a chess ladder. That runs for
+          <span id="f-tourn">10</span> separate tournaments of <span id="f-rounds">500</span>
+          rounds, averaged.
+        </p>
+        <p>
+          Someone with five reviews swings wildly and loses a lot of those matches. Someone with
+          three hundred lands in nearly the same place every time. Professors with fewer than
+          <span id="f-minr">5</span> reviews aren&rsquo;t ranked at all.
         </p>
       </div>
       <div>
-        <h3>How tiers are assigned</h3>
+        <h3>What a tier means, and where it doesn&rsquo;t</h3>
         <p>
-          All 25 divisions reproduce VALORANT&rsquo;s published population distribution by board
-          position, not by score: the top 0.05% are Radiant, the next 0.17% Immortal 3, down to the
-          bottom 0.57% in Iron 1. The published shares total 100.02% rather than 100, so assignment
-          normalises by that actual total. Cumulative share crosses 50% inside Gold 2, so Gold
-          straddles the median professor, as it does in game.
+          Tiers follow VALORANT&rsquo;s real population distribution, so they mean what they do in
+          game. Diamond here is roughly the top 12% of professors, the same as Diamond in your
+          queue. All 25 divisions are in, Iron 1 through Radiant, and Gold sits on the median
+          professor exactly like it does on the median player.
         </p>
         <p>
-          <strong>Adjacent ranks are often not distinguishable.</strong> The bar under each Elo
-          spans one standard deviation across the tournaments. Where two bars overlap, the data
-          does not separate those professors and the order between them is arbitrary &mdash;
-          including across a tier boundary.
+          <strong>Two ranks next to each other often don&rsquo;t mean anything.</strong> The bar
+          under each rating shows how much that professor moved between tournaments. Where two bars
+          overlap, the reviews genuinely can&rsquo;t tell those professors apart and the order
+          between them is arbitrary &mdash; including when a tier boundary falls between them.
         </p>
       </div>
     </div>
@@ -511,12 +513,12 @@ const ALL = DATA.rows.map((r, i) => ({ r, rank: i + 1 }));
     'All 25 divisions, low to high. Bar height is linear in share of the field — '
     + 'click a division or a tier name to filter the board.';
   document.getElementById('f-stamp').innerHTML =
-    'Ratings pulled from RateMyProfessors on ' + m.ingested_on + '; ranked with seed ' + m.seed +
-    ', so a re-run reproduces this board exactly. Only average rating and rating count drive the ' +
-    'score — difficulty and would-take-again are shown for context but are not part of it, and no ' +
-    'adjustment is made for a department&rsquo;s grading culture. Rank tier artwork and the tier ' +
-    'colours are property of Riot Games; this is an unofficial fan project and is not endorsed by ' +
-    'Riot Games or by either university.';
+    'Reviews pulled from RateMyProfessors on ' + m.ingested_on + '. Only the rating and the review '
+    + 'count affect the rank — difficulty and would-take-again are shown for context but aren&rsquo;t '
+    + 'part of it, and nothing accounts for departments grading differently. RateMyProfessors '
+    + 'reviews are voluntary, so they lean toward people with strong feelings either way. '
+    + 'Made this for me and my friends. Unofficial fan project — rank icons and tier colours belong '
+    + 'to Riot Games, and it isn&rsquo;t endorsed by Riot, UNC, or Duke.';
 })();
 
 /* ---------- rank distribution chart ---------- */
